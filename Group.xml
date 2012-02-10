@@ -1,0 +1,67 @@
+<root>
+    <Group ID="100">
+        <SRC>
+            <S>rtsp://127.0.0.1:5544/ncast</S>
+            <S>rtsp://127.0.0.1:5545/ncast</S>
+            <S>rtsp://127.0.0.1:5546/ncast</S>
+        </SRC>
+        <File>
+            <Name>test-$T</Name>
+            <Path>/VOD</Path>
+        </File>
+        <MIX SOUT="rtsp://:8001/mix">
+            <Format>
+                <F>ts</F>
+                <F>flv</F>
+            </Format>
+            <Layout img="t.jpg" width="960" height="480" >
+                <BOX SRC="0" audio="true" video="true" >
+                    <RECT X="320" Y="0" W="640" H="480" />
+                    <CROP L="0" T="0" R="0" B="0" />
+                </BOX>
+                <BOX SRC="0" audio="false" video="true" >
+                    <RECT X="0" Y="240" W="320" H="240" />
+                    <CROP L="0" T="0" R="0" B="0" />
+                </BOX>
+                <BOX SRC="0" audio="false"video="true"  >
+                    <RECT X="0" Y="0" W="320" H="240" />
+                    <CROP L="0" T="0" R="0" B="0" />
+                </BOX>
+             </Layout>
+        </MIX>
+        <MUX SOUT="rtsp://:8002/mux1" >
+            <Format>
+                <F>ts</F>
+            </Format>
+            <SRC>
+                <S audio="true" video="true" >0</S>
+                <S audio="false" video="true" >1</S>
+                <S audio="false" video="true" >2</S>
+            </SRC>
+        </MUX>
+        <MUX SOUT="none" >
+            <Format>
+                <F>ts</F>
+            </Format>
+            <SRC>
+                <S audio="true" video="true" >0</S>
+            </SRC>
+        </MUX>
+        <MUX SOUT="none" >
+            <Format>
+                <F>ts</F>
+            </Format>
+            <SRC>
+                <S audio="true" video="true" >1</S>
+            </SRC>
+        </MUX>
+        <MUX SOUT="none" >
+            <Format>
+                <F>ts</F>
+            </Format>
+            <SRC>
+                <S audio="true" video="true" >2</S>
+            </SRC>
+        </MUX>
+    </Group>
+</root>
