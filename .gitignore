@@ -1,3 +1,6 @@
 Encoder
 Encoder.pro.user
 Encoder.pro.user.1.3
+*.o
+moc_*.cpp
+ui_*.h
