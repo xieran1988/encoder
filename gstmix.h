@@ -22,10 +22,12 @@ public:
 public:
      _mix *data;
      QList<MIXBox*> animations;
+     bool isPlaying();
      bool start();
      bool stop();
      void showData();
 private:
+     bool bPlaying;
      QGst::PipelinePtr pipeline;
     DLGMIX *dlg;
     MIXView *view;

@@ -3,6 +3,7 @@
 #include <QGst/Pipeline>
 #include <QGst/Ui/VideoWidget>
 
+
 class MIXView : public QGst::Ui::VideoWidget
 {
 public:

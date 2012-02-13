@@ -9,6 +9,7 @@ GSTMIX::GSTMIX(_mix *d, QObject *parent) :
     QObject(parent)
 {
     data=d;
+    bPlaying=false;
     MIXBox *tmp;
     animations.clear();
     for(int i=0;i<data->box.count();i++)
@@ -45,6 +46,11 @@ GSTMIX::~GSTMIX()
 }
 bool GSTMIX::start()
 {
+    if(isPlaying())
+    {
+        return true;
+    }
+
     for(int i=0;i<data->box.count();i++)
     {
         qDebug(data->box.at(i)->src->url.toAscii().data());
@@ -58,7 +64,7 @@ bool GSTMIX::start()
     layout="";
     for(int i=0;i<data->box.count();i++)
     {
-        pipeDescr+=QString("videotestsrc pattern=13 ! video/x-raw-yuv, framerate=30/1, width=320, height=240 ! videobox ! "
+        pipeDescr+=QString("rtspsrc location=rtsp://127.0.0.1:5003/ latency=100 ! rtph264depay ! ffdec_h264  ! videobox ! "
                             "videoscale ! capsfilter name=\"scale%1\" caps=\"video/x-raw-yuv, width=%2, height=%3\" ! mix. ")
                             .arg(i+1).arg(data->box.at(i)->rect.width()).arg(data->box.at(i)->rect.height());
         layout+=QString("sink_%1::xpos=%2 sink_%3::ypos=%4 ")
@@ -66,8 +72,13 @@ bool GSTMIX::start()
                         .arg(i+1).arg(data->box.at(i)->rect.y());
     }
 
-    pipeDescr+=QString("videomixer name=mix %1 ! ffmpegcolorspace !  autovideosink ").arg(layout);
     int port=myData.getNextPort();
+    pipeDescr+=QString("videomixer name=mix %1 ! ffmpegcolorspace ! tee name=t "
+                       "t. ! queue max-size-bytes=500000000 max-size-buffers=100 max-size-time=1000000 ! autovideosink "
+                       "t. ! queue max-size-bytes=500000000 max-size-buffers=100 max-size-time=1000000 ! "
+                       "ffenc_mpeg4 bitrate=8000000 ! mpegtsmux ! mpegtsparse ! tee name=t2 t2. ! multiudpsink clients=127.0.0.1:%2 "
+                       "t2. ! filesink location=test.ts sync=false async=false ").arg(layout).arg(port);
+
     QString url;
     url.sprintf("UDP://@0.0.0.0:%d",port);
     media = libvlc_media_new_path(inst, url.toAscii().data());
@@ -78,29 +89,31 @@ bool GSTMIX::start()
     libvlc_media_player_play(player);
     libvlc_media_release(media);
 
-//    pipeDescr.sprintf("multifilesrc  location=%s caps=\"image/jpeg,framerate=30/1\" ! jpegdec ! videoscale ! video/x-raw-yuv, width=%d, height=%d ! videobox  ! mix. "
-//            "videotestsrc pattern=1 ! video/x-raw-yuv, framerate=30/1, width=320, height=240 ! videobox ! "
-//            "videoscale ! video/x-raw-yuv, framerate=30/1, width=%d, height=%d ! mix. "
-//            "videotestsrc pattern=13 ! video/x-raw-yuv, framerate=30/1, width=320, height=240 ! videobox ! "
-//            "videoscale ! video/x-raw-yuv, framerate=30/1, width=%d, height=%d ! mix. "
-//            "videotestsrc pattern=15 ! video/x-raw-yuv, framerate=30/1, width=640, height=480 ! videobox ! "
-//            "videoscale ! video/x-raw-yuv, framerate=30/1, width=%d, height=%d ! mix. "
-//            "videomixer name=mix sink_2::ypos=240 sink_3::xpos=320 ! ffmpegcolorspace !  autovideosink ",
-//            data->background.toAscii().data(),data->size.width(),data->size.height());
-//    QString pipeDescr = "filesrc location=/home/zc/gst/Encoder/t.jpg ! jpegdec ! videoscale ! video/x-raw-yuv, width=1280, height=240 ! ffmpegcolorspace ! autovideosink ";
-
     pipeline = QGst::Parse::launch(pipeDescr).dynamicCast<QGst::Pipeline>();
     view->watchPipeline(pipeline);
-    pipeline->setState(QGst::StatePlaying);
+
+    bPlaying=pipeline->setState(QGst::StatePlaying);
+    if(!bPlaying)
+    {
+        return false;
+    }
 
     return true;
 }
 
 bool GSTMIX::stop()
 {
+    if(!isPlaying())
+    {
+        return true;
+    }
+
+
     pipeline->setState(QGst::StateNull);
     libvlc_media_player_stop(player);
     libvlc_media_player_release(player);
+    view->stopPipelineWatch();
+    bPlaying=false;
 
     return true;
 }
@@ -128,4 +141,9 @@ void GSTMIX::onshow()
         animations.at(1)->AnimationSwap(this->animations.at(0));
         //view->hide();
     }
+}
+
+bool GSTMIX::isPlaying()
+{
+    return bPlaying;
 }
