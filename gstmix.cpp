@@ -57,16 +57,23 @@ bool GSTMIX::start()
     }
 
     QString layout;
+    QString audio;
     QString pipeDescr;
-    pipeDescr.sprintf("multifilesrc  location=%s caps=\"image/jpeg,framerate=30/1\" ! jpegdec ! videoscale name=\"scale0\" ! video/x-raw-yuv, width=%d, height=%d ! videobox  ! mix. ",
+    pipeDescr.sprintf("multifilesrc  location=%s caps=\"image/jpeg\" ! jpegdec ! videobox ! videoscale name=\"scale0\" ! video/x-raw-yuv, width=%d, height=%d ! mix. ",
             data->background.toAscii().data(),data->size.width(),data->size.height());
 
     layout="";
+    audio="";
     for(int i=0;i<data->box.count();i++)
     {
-        pipeDescr+=QString("rtspsrc location=rtsp://127.0.0.1:5003/ latency=100 ! rtph264depay ! ffdec_h264  ! videobox ! "
-                            "videoscale ! capsfilter name=\"scale%1\" caps=\"video/x-raw-yuv, width=%2, height=%3\" ! mix. ")
-                            .arg(i+1).arg(data->box.at(i)->rect.width()).arg(data->box.at(i)->rect.height());
+        pipeDescr+=QString("rtspsrc location=%1 latency=100 name=source%2 source%3. ! rtph264depay ! decodebin2  ! videobox ! "
+                            "videoscale ! capsfilter name=\"scale%4\" caps=\"video/x-raw-yuv, width=%5, height=%6\" ! mix. ")
+                            .arg(data->box.at(i)->src->url)
+                            .arg(i+1).arg(i+1).arg(i+1).arg(data->box.at(i)->rect.width()).arg(data->box.at(i)->rect.height());
+        if(data->box.at(i)->audio)
+        {
+            audio+=QString(" source%1. ! rtpmp4gdepay ! aacparse ! mux. ").arg(i+1);
+        }
         layout+=QString("sink_%1::xpos=%2 sink_%3::ypos=%4 ")
                         .arg(i+1).arg(data->box.at(i)->rect.x())
                         .arg(i+1).arg(data->box.at(i)->rect.y());
@@ -77,11 +84,11 @@ bool GSTMIX::start()
     QDateTime tm;
     tm=QDateTime::currentDateTime();
     location=location.replace("$T",tm.toString("yyyymmdd-hh:mm:ss"));
-    pipeDescr+=QString("videomixer name=mix %1 ! ffmpegcolorspace ! tee name=t "
+    pipeDescr+=QString("videomixer name=mix %1 ! ffmpegcolorspace ! queue max-size-bytes=500000000 max-size-buffers=100 max-size-time=1000000 ! tee name=t "
                        "t. ! queue max-size-bytes=500000000 max-size-buffers=100 max-size-time=1000000 ! autovideosink "
                        "t. ! queue max-size-bytes=500000000 max-size-buffers=100 max-size-time=1000000 ! "
-                       "ffenc_mpeg4 bitrate=4000000 ! mpegtsmux ! mpegtsparse ! tee name=t2 t2. ! multiudpsink clients=127.0.0.1:%2 "
-                       "t2. ! filesink location=%3.ts sync=false async=false ").arg(layout).arg(port).arg(location);
+                       "ffenc_mpeg4 bitrate=2000000 ! mux. %2 mpegtsmux name=mux ! mpegtsparse ! queue ! tee name=t2 t2. ! queue ! multiudpsink clients=127.0.0.1:%3 "
+                       "t2. ! queue ! filesink location=%4.ts sync=false async=false ").arg(layout).arg(audio).arg(port).arg(location);
 
 
     QString url;

@@ -1,9 +1,9 @@
 <root>
     <Group ID="100">
         <SRC>
-            <S>rtsp://127.0.0.1:5544/ncast</S>
-            <S>rtsp://127.0.0.1:5545/ncast</S>
-            <S>rtsp://127.0.0.1:5546/ncast</S>
+            <S>rtsp://127.0.0.1:5003/</S>
+            <S>rtsp://127.0.0.1:5003/</S>
+            <S>rtsp://127.0.0.1:5003/</S>
         </SRC>
         <File>
             <Name>test-$T</Name>
@@ -14,17 +14,17 @@
                 <F>ts</F>
                 <F>flv</F>
             </Format>
-            <Layout img="t.jpg" width="960" height="480" >
+            <Layout img="t.jpg" width="1920" height="720" >
                 <BOX SRC="0" audio="true" video="true" >
-                    <RECT X="320" Y="0" W="640" H="480" />
+                    <RECT X="640" Y="0" W="1280" H="720" />
                     <CROP L="0" T="0" R="0" B="0" />
                 </BOX>
                 <BOX SRC="0" audio="false" video="true" >
-                    <RECT X="0" Y="240" W="320" H="240" />
+                    <RECT X="0" Y="360" W="640" H="360" />
                     <CROP L="0" T="0" R="0" B="0" />
                 </BOX>
                 <BOX SRC="0" audio="false"video="true"  >
-                    <RECT X="0" Y="0" W="320" H="240" />
+                    <RECT X="0" Y="0" W="640" H="360" />
                     <CROP L="0" T="0" R="0" B="0" />
                 </BOX>
              </Layout>
