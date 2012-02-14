@@ -73,11 +73,16 @@ bool GSTMIX::start()
     }
 
     int port=myData.getNextPort();
+    QString location=data->pGroup->filePath + "/" + data->pGroup->fileName;
+    QDateTime tm;
+    tm=QDateTime::currentDateTime();
+    location=location.replace("$T",tm.toString("yyyymmdd-hh:mm:ss"));
     pipeDescr+=QString("videomixer name=mix %1 ! ffmpegcolorspace ! tee name=t "
                        "t. ! queue max-size-bytes=500000000 max-size-buffers=100 max-size-time=1000000 ! autovideosink "
                        "t. ! queue max-size-bytes=500000000 max-size-buffers=100 max-size-time=1000000 ! "
-                       "ffenc_mpeg4 bitrate=8000000 ! mpegtsmux ! mpegtsparse ! tee name=t2 t2. ! multiudpsink clients=127.0.0.1:%2 "
-                       "t2. ! filesink location=test.ts sync=false async=false ").arg(layout).arg(port);
+                       "ffenc_mpeg4 bitrate=4000000 ! mpegtsmux ! mpegtsparse ! tee name=t2 t2. ! multiudpsink clients=127.0.0.1:%2 "
+                       "t2. ! filesink location=%3.ts sync=false async=false ").arg(layout).arg(port).arg(location);
+
 
     QString url;
     url.sprintf("UDP://@0.0.0.0:%d",port);
@@ -85,6 +90,9 @@ bool GSTMIX::start()
     QString sout;
     sout.sprintf(":sout=#rtp{sdp=%s}", data->sout.toAscii().data());
     libvlc_media_add_option(media, sout.toAscii().data());
+    libvlc_media_add_option(media, ":sout-caching=0");
+    libvlc_media_add_option(media, ":sout-rtsp-caching=0");
+    libvlc_media_add_option(media, ":rtsp-sout-caching=0");
     player = libvlc_media_player_new_from_media(media);
     libvlc_media_player_play(player);
     libvlc_media_release(media);
