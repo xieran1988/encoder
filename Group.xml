@@ -9,7 +9,7 @@
             <Name>test-$T</Name>
             <Path>/VOD</Path>
         </File>
-        <MIX SOUT="rtsp://:8001/mix">
+        <MIX ENCODER="ffenc_mpeg4" BITRATE="2000000" SOUT="rtsp://:8001/mix">
             <Format>
                 <F>ts</F>
                 <F>flv</F>

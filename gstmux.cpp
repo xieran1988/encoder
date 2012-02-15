@@ -10,13 +10,15 @@ GSTMUX::GSTMUX(_mux *d, QObject *parent) :
     QObject(parent)
 {
     data=d;
-
+    bPlaying=false;
     dlg=NULL;
     dlg=new DLGMUX();
     ((Group*)this->parent())->dlg->vbox->addWidget(dlg);
     dlg->show();
     connect(dlg,SIGNAL(start()),this,SLOT(onstart()));
     connect(dlg,SIGNAL(stop()),this,SLOT(onstop()));
+
+    inst = libvlc_new (0, NULL);
 }
 
 GSTMUX::~GSTMUX()
@@ -28,23 +30,90 @@ GSTMUX::~GSTMUX()
 
 bool GSTMUX::start()
 {
+    if(isPlaying())
+    {
+        return true;
+    }
+
     for(int i=0;i<data->src.count();i++)
     {
         qDebug(data->src.at(i)->src->url.toAscii().data());
     }
 
-    QString pipeDescr = "videotestsrc pattern=1 ! video/x-raw-yuv, framerate=30/1, width=320, height=240 ! videobox border-alpha=0 top=0 left=0 ! mix. "
-            "videotestsrc pattern=15 ! video/x-raw-yuv, framerate=30/1, width=640, height=480 ! videobox border-alpha=0 top=0 left=-320 ! mix. "
-            "videotestsrc pattern=13 ! video/x-raw-yuv, framerate=30/1, width=320, height=240 ! videobox name=\"vb\" border-alpha=0 top=-240 left=0 ! mix. "
-            "videomixer name=mix ! ffmpegcolorspace ! autovideosink ";
+    QString video;
+    QString audio;
+    QString pipeDescr;
+
+    video="";
+    audio="";
+    pipeDescr="";
+    for(int i=0;i<data->src.count();i++)
+    {
+        pipeDescr+=QString("rtspsrc location=%1 latency=100 name=source%2 ")
+                            .arg(data->src.at(i)->src->url)
+                            .arg(i+1);
+        if(data->src.at(i)->video)
+        {
+            video+=QString(" source%1. ! rtph264depay ! h264parse ! mux. ")
+                            .arg(i+1);
+        }
+        if(data->src.at(i)->audio)
+        {
+            audio+=QString(" source%1. ! rtpmp4gdepay ! aacparse ! mux. ").arg(i+1);
+        }
+
+    }
+
+    int port=myData.getNextPort();
+    QString location=data->pGroup->filePath + "/" + data->pGroup->fileName;
+    QDateTime tm;
+    tm=QDateTime::currentDateTime();
+    location=location.replace("$T",tm.toString("yyyyMMdd-hh:mm:ss"));
+    pipeDescr+=QString(" %1 %2 mpegtsmux name=mux ! mpegtsparse ! queue ! tee name=t t. ! queue ! multiudpsink clients=127.0.0.1:%3 "
+                       "t. ! queue ! filesink location=%4.ts sync=false async=false ")
+            .arg(video)
+            .arg(audio)
+            .arg(port).arg(location);
+
+
+    QString url;
+    url.sprintf("UDP://@0.0.0.0:%d",port);
+    media = libvlc_media_new_path(inst, url.toAscii().data());
+    QString sout;
+    sout.sprintf(":sout=#rtp{sdp=%s}", data->sout.toAscii().data());
+    libvlc_media_add_option(media, sout.toAscii().data());
+    libvlc_media_add_option(media, ":sout-caching=0");
+    libvlc_media_add_option(media, ":sout-rtsp-caching=0");
+    libvlc_media_add_option(media, ":rtsp-sout-caching=0");
+    player = libvlc_media_player_new_from_media(media);
+    libvlc_media_player_play(player);
+    libvlc_media_release(media);
+
     pipeline = QGst::Parse::launch(pipeDescr).dynamicCast<QGst::Pipeline>();
-    pipeline->setState(QGst::StatePlaying);
+
+
+    bPlaying=pipeline->setState(QGst::StatePlaying);
+    if(!bPlaying)
+    {
+        return false;
+    }
+
     return true;
 }
 
 bool GSTMUX::stop()
 {
+    if(!isPlaying())
+    {
+        return true;
+    }
+
+
     pipeline->setState(QGst::StateNull);
+    libvlc_media_player_stop(player);
+    libvlc_media_player_release(player);
+    bPlaying=false;
+
     return true;
 }
 
@@ -70,4 +139,9 @@ void GSTMUX::onstart()
 void GSTMUX::onstop()
 {
     stop();
+}
+
+bool GSTMUX::isPlaying()
+{
+    return bPlaying;
 }

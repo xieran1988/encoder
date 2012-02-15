@@ -47,6 +47,8 @@ struct _mix
     QSize size;
     QString background;
     QString sout;
+    QString encoder;
+    quint32 bitrate;
     _group *pGroup;
 };
 
@@ -55,7 +57,7 @@ struct _mux
     QStringList format;
     QList<_msrc*> src;
     QString sout;
-    _group *gp;
+    _group *pGroup;
 };
 
 

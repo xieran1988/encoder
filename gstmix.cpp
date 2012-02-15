@@ -83,12 +83,15 @@ bool GSTMIX::start()
     QString location=data->pGroup->filePath + "/" + data->pGroup->fileName;
     QDateTime tm;
     tm=QDateTime::currentDateTime();
-    location=location.replace("$T",tm.toString("yyyymmdd-hh:mm:ss"));
-    pipeDescr+=QString("videomixer name=mix %1 ! ffmpegcolorspace ! queue max-size-bytes=500000000 max-size-buffers=100 max-size-time=1000000 ! tee name=t "
+    location=location.replace("$T",tm.toString("yyyyMMdd-hh:mm:ss"));
+    pipeDescr+=QString("videomixer name=mix %1 ! ffmpegcolorspace !  tee name=t "
                        "t. ! queue max-size-bytes=500000000 max-size-buffers=100 max-size-time=1000000 ! autovideosink "
                        "t. ! queue max-size-bytes=500000000 max-size-buffers=100 max-size-time=1000000 ! "
-                       "ffenc_mpeg4 bitrate=2000000 ! mux. %2 mpegtsmux name=mux ! mpegtsparse ! queue ! tee name=t2 t2. ! queue ! multiudpsink clients=127.0.0.1:%3 "
-                       "t2. ! queue ! filesink location=%4.ts sync=false async=false ").arg(layout).arg(audio).arg(port).arg(location);
+                       "%2 bitrate=%3 ! mux. %4 mpegtsmux name=mux ! mpegtsparse ! queue ! tee name=t2 t2. ! queue ! multiudpsink clients=127.0.0.1:%5 "
+                       "t2. ! queue ! filesink location=%6.ts sync=false async=false ")
+            .arg(layout)
+            .arg(data->encoder).arg(data->bitrate)
+            .arg(audio).arg(port).arg(location);
 
 
     QString url;

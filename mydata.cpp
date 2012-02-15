@@ -78,6 +78,8 @@ bool MyData::LoadConfig(const QString &path)
             tmix->size.setWidth(mixs.at(j).namedItem("Layout").attributes().namedItem("width").firstChild().nodeValue().toInt());
             tmix->size.setHeight(mixs.at(j).namedItem("Layout").attributes().namedItem("height").firstChild().nodeValue().toInt());
             tmix->sout=mixs.at(j).attributes().namedItem("SOUT").firstChild().toText().data();
+            tmix->encoder=mixs.at(j).attributes().namedItem("ENCODER").firstChild().toText().data();
+            tmix->bitrate=mixs.at(j).attributes().namedItem("BITRATE").firstChild().toText().data().toInt();
             //group>mix>format
             formats=mixs.at(j).namedItem("Format").toElement().elementsByTagName("F");
             for(int k=0;k<formats.count();k++)
@@ -135,7 +137,7 @@ bool MyData::LoadConfig(const QString &path)
                 tmsrc->pMux=tmux;
                 tmux->src.push_back(tmsrc);
             }
-            tmux->gp=tgroup;
+            tmux->pGroup=tgroup;
             tgroup->mux.push_back(tmux);
         }
 
