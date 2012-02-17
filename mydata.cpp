@@ -150,13 +150,13 @@ bool MyData::LoadConfig(const QString &path)
 
 quint16 MyData::getNextPort()
 {
-    QUdpSocket socket;
-    nextport++;
-    while(!socket.bind(nextport))
+    QUdpSocket udp;
+
+    while(!udp.bind(nextport))
     {
         nextport++;
     }
-    socket.close();
+    udp.close();
     return nextport;
 }
 

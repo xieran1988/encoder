@@ -22,12 +22,14 @@ public:
 public:
      _mix *data;
      QList<MIXBox*> animations;
-     bool isPlaying();
-     bool start();
+     int getState();
+     bool start(int type);
+     bool pause();
      bool stop();
      void showData();
 private:
-     bool bPlaying;
+     bool startRtsp(int port);
+     int state;
      QGst::PipelinePtr pipeline;
     DLGMIX *dlg;
     MIXView *view;
@@ -39,6 +41,7 @@ signals:
     
 public slots:
     void onstart();
+    void onpause();
     void onstop();
     void onshow();
     

@@ -19,11 +19,11 @@
                     <RECT X="640" Y="0" W="1280" H="720" />
                     <CROP L="0" T="0" R="0" B="0" />
                 </BOX>
-                <BOX SRC="0" audio="false" video="true" >
+                <BOX SRC="0" audio="true" video="true" >
                     <RECT X="0" Y="360" W="640" H="360" />
                     <CROP L="0" T="0" R="0" B="0" />
                 </BOX>
-                <BOX SRC="0" audio="false"video="true"  >
+                <BOX SRC="0" audio="true" video="true"  >
                     <RECT X="0" Y="0" W="640" H="360" />
                     <CROP L="0" T="0" R="0" B="0" />
                 </BOX>
@@ -35,11 +35,11 @@
             </Format>
             <SRC>
                 <S audio="true" video="true" >0</S>
-                <S audio="false" video="true" >1</S>
-                <S audio="false" video="true" >2</S>
+                <S audio="true" video="true" >1</S>
+                <S audio="true" video="true" >2</S>
             </SRC>
         </MUX>
-        <MUX SOUT="none" >
+        <MUX SOUT="rtsp://:8003/mux2" >
             <Format>
                 <F>ts</F>
             </Format>
@@ -47,7 +47,7 @@
                 <S audio="true" video="true" >0</S>
             </SRC>
         </MUX>
-        <MUX SOUT="none" >
+        <MUX SOUT="rtsp://:8004/mux3" >
             <Format>
                 <F>ts</F>
             </Format>
@@ -55,7 +55,7 @@
                 <S audio="true" video="true" >1</S>
             </SRC>
         </MUX>
-        <MUX SOUT="none" >
+        <MUX SOUT="rtsp://:8005/mux4" >
             <Format>
                 <F>ts</F>
             </Format>

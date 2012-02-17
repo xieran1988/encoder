@@ -9,7 +9,8 @@ GSTMIX::GSTMIX(_mix *d, QObject *parent) :
     QObject(parent)
 {
     data=d;
-    bPlaying=false;
+    state=0;
+
     MIXBox *tmp;
     animations.clear();
     for(int i=0;i<data->box.count();i++)
@@ -27,6 +28,7 @@ GSTMIX::GSTMIX(_mix *d, QObject *parent) :
     ((Group*)this->parent())->dlg->vbox->addWidget(dlg);
     dlg->show();
     connect(dlg,SIGNAL(start()),this,SLOT(onstart()));
+    connect(dlg,SIGNAL(pause()),this,SLOT(onpause()));
     connect(dlg,SIGNAL(stop()),this,SLOT(onstop()));
     connect(dlg,SIGNAL(showSignal()),this,SLOT(onshow()));
 
@@ -34,6 +36,7 @@ GSTMIX::GSTMIX(_mix *d, QObject *parent) :
     view=new MIXView();
 
     inst = libvlc_new (0, NULL);
+    player=NULL;
     // view->show();
 }
 
@@ -44,16 +47,16 @@ GSTMIX::~GSTMIX()
     dlg=NULL;
 
 }
-bool GSTMIX::start()
+bool GSTMIX::start(int type)
 {
-    if(isPlaying())
+    if(state!=0)
     {
         return true;
     }
 
     for(int i=0;i<data->box.count();i++)
     {
-        qDebug(data->box.at(i)->src->url.toAscii().data());
+        qDebug("%s",data->box.at(i)->src->url.toAscii().data());
     }
 
     QString layout;
@@ -80,40 +83,43 @@ bool GSTMIX::start()
     }
 
     int port=myData.getNextPort();
-    QString location=data->pGroup->filePath + "/" + data->pGroup->fileName;
     QDateTime tm;
     tm=QDateTime::currentDateTime();
-    location=location.replace("$T",tm.toString("yyyyMMdd-hh:mm:ss"));
+    QString filesink;
+    if(type&1)
+    {
+        filesink="t. ! queue ! filesink location="
+                +data->pGroup->filePath + "/"
+                + data->pGroup->fileName.replace("$T",tm.toString("yyyyMMdd-hh:mm:ss"))
+                + ".ts";
+    }
+
+
     pipeDescr+=QString("videomixer name=mix %1 ! ffmpegcolorspace !  tee name=t "
                        "t. ! queue max-size-bytes=500000000 max-size-buffers=100 max-size-time=1000000 ! autovideosink "
                        "t. ! queue max-size-bytes=500000000 max-size-buffers=100 max-size-time=1000000 ! "
-                       "%2 bitrate=%3 ! mux. %4 mpegtsmux name=mux ! mpegtsparse ! queue ! tee name=t2 t2. ! queue ! multiudpsink clients=127.0.0.1:%5 "
-                       "t2. ! queue ! filesink location=%6.ts sync=false async=false ")
+                       "%2 bitrate=%3 ! mux. %4 mpegtsmux name=mux ! mpegtsparse ! tee name=t2 t2. ! queue ! multiudpsink clients=127.0.0.1:%5  "
+                       "%6")
             .arg(layout)
             .arg(data->encoder).arg(data->bitrate)
-            .arg(audio).arg(port).arg(location);
+            .arg(audio).arg(port).arg(filesink);
+    if(type&2)
+    {
+        startRtsp(port);
+    }
 
 
-    QString url;
-    url.sprintf("UDP://@0.0.0.0:%d",port);
-    media = libvlc_media_new_path(inst, url.toAscii().data());
-    QString sout;
-    sout.sprintf(":sout=#rtp{sdp=%s}", data->sout.toAscii().data());
-    libvlc_media_add_option(media, sout.toAscii().data());
-    libvlc_media_add_option(media, ":sout-caching=0");
-    libvlc_media_add_option(media, ":sout-rtsp-caching=0");
-    libvlc_media_add_option(media, ":rtsp-sout-caching=0");
-    player = libvlc_media_player_new_from_media(media);
-    libvlc_media_player_play(player);
-    libvlc_media_release(media);
 
     pipeline = QGst::Parse::launch(pipeDescr).dynamicCast<QGst::Pipeline>();
     view->watchPipeline(pipeline);
 
-    bPlaying=pipeline->setState(QGst::StatePlaying);
-    if(!bPlaying)
+    bool rt=pipeline->setState(QGst::StatePlaying);
+    if(!rt)
     {
         return false;
+    }else
+    {
+         state=1;
     }
 
     return true;
@@ -121,17 +127,21 @@ bool GSTMIX::start()
 
 bool GSTMIX::stop()
 {
-    if(!isPlaying())
+    if(state==0)
     {
         return true;
     }
 
 
     pipeline->setState(QGst::StateNull);
-    libvlc_media_player_stop(player);
-    libvlc_media_player_release(player);
+    if(player!=NULL)
+    {
+        libvlc_media_player_stop(player);
+        libvlc_media_player_release(player);
+        player=NULL;
+    }
     view->stopPipelineWatch();
-    bPlaying=false;
+    state=0;
 
     return true;
 }
@@ -142,7 +152,7 @@ void GSTMIX::showData()
 
 void GSTMIX::onstart()
 {
-    start();
+    start(3);
 }
 
 void GSTMIX::onstop()
@@ -161,7 +171,52 @@ void GSTMIX::onshow()
     }
 }
 
-bool GSTMIX::isPlaying()
+
+
+bool GSTMIX::startRtsp(int port)
 {
-    return bPlaying;
+    QString url;
+    url.sprintf("UDP://@0.0.0.0:%d",port);
+    media = libvlc_media_new_path(inst, url.toAscii().data());
+    QString sout;
+    sout.sprintf(":sout=#rtp{sdp=%s}", data->sout.toAscii().data());
+    libvlc_media_add_option(media, sout.toAscii().data());
+    libvlc_media_add_option(media, ":sout-caching=0");
+    libvlc_media_add_option(media, ":udp-caching=80");
+    libvlc_media_add_option(media, ":sout-rtsp-caching=0");
+    libvlc_media_add_option(media, ":sout-rtp-caching=0");
+    libvlc_media_add_option(media, ":rtp-caching=0");
+    libvlc_media_add_option(media, ":sout-mux-caching=0");
+    libvlc_media_add_option(media, ":sout-all");
+    //libvlc_media_add_option(media, ":clock-jitter=0");
+
+    player = libvlc_media_player_new_from_media(media);
+    libvlc_media_player_play(player);
+    libvlc_media_release(media);
+    return true;
 }
+
+void GSTMIX::onpause()
+{
+    pause();
+}
+bool GSTMIX::pause()
+{
+    if(state==2)
+    {
+        state=1;
+        pipeline->setState(QGst::StatePlaying);
+    }
+    else if(state==1)
+    {
+        state=2;
+        pipeline->setState(QGst::StatePaused);
+    }
+    return true;
+}
+
+int GSTMIX::getState()
+{
+    return state;
+}
+

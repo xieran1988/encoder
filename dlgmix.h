@@ -18,6 +18,7 @@ public:
 
 signals:
     void start();
+    void pause();
     void stop();
     void showSignal();
 
@@ -27,6 +28,8 @@ private slots:
     void on_pushButton_stop_clicked();
 
     void on_pushButton_show_clicked();
+
+    void on_pushButton_pause_clicked();
 
 private:
     Ui::DLGMIX *ui;

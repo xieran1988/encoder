@@ -19,12 +19,14 @@ public:
     ~GSTMUX();
 public:
     _mux *data;
-    bool isPlaying();
-    bool start();
+    int getState();
+    bool start(int type);
+    bool pause();
     bool stop();
     void showData();
 private:
-    bool bPlaying;
+    bool startRtsp(int port);
+    int state;
     QGst::PipelinePtr pipeline;
     DLGMUX *dlg;
     libvlc_instance_t *inst;

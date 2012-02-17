@@ -28,3 +28,8 @@ void DLGMIX::on_pushButton_show_clicked()
 {
     emit showSignal();
 }
+
+void DLGMIX::on_pushButton_pause_clicked()
+{
+    emit pause();
+}

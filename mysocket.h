@@ -11,6 +11,9 @@ class MySocket : public QUdpSocket
 public:
     explicit MySocket(QObject *parent = 0);
     void start(QString &arg);
+    void stop(QString &arg);
+    void pause(QString &arg);
+    void state(QString &arg);
 signals:
 private:
     QHostAddress clientIP;

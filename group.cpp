@@ -43,12 +43,57 @@ bool Group::init()
     return true;
 }
 
-bool Group::startMix(int index)
+bool Group::startMix(int index, int type)
 {
-    return mix.at(index)->start();
+    return mix.at(index)->start(type);
 }
 
-bool Group::startMux(int index)
+bool Group::startMux(int index, int type)
 {
-    return mux.at(index)->start();
+    return mux.at(index)->start(type);
+}
+
+bool Group::stopMix(int index)
+{
+    return mix.at(index)->stop();
+}
+
+bool Group::stopMux(int index)
+{
+    return mux.at(index)->stop();
+}
+bool Group::pauseMix(int index)
+{
+    return mix.at(index)->pause();
+}
+
+bool Group::pauseMux(int index)
+{
+    return mux.at(index)->pause();
+}
+
+int Group::getMixState(int index)
+{
+    return mix.at(index)->getState();
+}
+int Group::getMuxState(int index)
+{
+    return mux.at(index)->getState();
+}
+
+QString& Group::getAllState()
+{
+    QString str;
+    for(int i=0;i<mix.count();i++)
+    {
+        str+=QString("%1,").arg(mix.at(i)->getState());
+    }
+    for(int i=0;i<mux.count();i++)
+    {
+        str+=QString("%1,").arg(mux.at(i)->getState());
+    }
+
+    str=str.left(str.length()-1);
+    qDebug("%s",str.toAscii().data());
+    return str;
 }

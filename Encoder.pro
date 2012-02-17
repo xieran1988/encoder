@@ -20,6 +20,8 @@ LIBS += -lQtGStreamerUi-0.10
 #for libvlc
 LIBS += -lvlc
 
+INCLUDEPATH += /usr/include/QtGStreamer
+
 SOURCES += main.cpp\
         mainwindow.cpp \
     mydata.cpp \
